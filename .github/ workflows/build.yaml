@@ -24,7 +24,7 @@ jobs:
 
       - name: Build EXE
         run: |
-          pyinstaller --noconsole --onefile --name ImageShrinker image_shrinker_gui.py
+          pyinstaller --noconsole --onefile --name ImageShrinker photo_resize.py
         shell: bash
 
       - name: Upload EXE
@@ -51,7 +51,7 @@ jobs:
 
       - name: Build .app
         run: |
-          pyinstaller --windowed --name ImageShrinker image_shrinker_gui.py
+          pyinstaller --windowed --name ImageShrinker photo_resize.py
 
       - name: Create DMG
         run: |
