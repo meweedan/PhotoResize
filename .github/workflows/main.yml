@@ -1,0 +1,91 @@
+name: Build & Release (Windows .exe + macOS .dmg)
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt pyinstaller
+      - name: Build EXE
+        run: pyinstaller --onefile --windowed --name "PhotoResize" photo_resize.py
+      - name: Package ZIP with installer
+        shell: bash
+        run: |
+          mkdir -p package-win
+          cp "dist/PhotoResize.exe" "package-win/"
+          cp installers/Install-PhotoResize.ps1 "package-win/"
+          cp installers/Install-PhotoResize.bat "package-win/"
+          cd package-win
+          7z a -tzip ../PhotoResize-Windows.zip *
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-zip
+          path: PhotoResize-Windows.zip
+          if-no-files-found: error
+
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt pyinstaller create-dmg
+      - name: Build .app
+        run: pyinstaller --windowed --name "PhotoResize" photo_resize.py
+      - name: Create DMG with helper
+        run: |
+          mkdir -p package-mac
+          cp -R "dist/PhotoResize.app" "package-mac/"
+          cp "installers/Finish Install.command" "package-mac/"
+          create-dmg \
+            --volname "PhotoResize" \
+            --window-pos 200 120 \
+            --window-size 600 400 \
+            --icon-size 100 \
+            --icon "PhotoResize.app" 175 200 \
+            --hide-extension "Finish Install.command" \
+            --app-drop-link 425 200 \
+            "PhotoResize-macOS.dmg" \
+            "package-mac"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos-dmg
+          path: PhotoResize-macOS.dmg
+          if-no-files-found: error
+
+  release:
+    needs: [build-windows, build-macos]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: windows-zip
+          path: ./release
+      - uses: actions/download-artifact@v4
+        with:
+          name: macos-dmg
+          path: ./release
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            release/PhotoResize-Windows.zip
+            release/PhotoResize-macOS.dmg
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
