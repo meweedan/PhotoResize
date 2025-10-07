@@ -45,24 +45,20 @@ jobs:
       - name: Install deps
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt pyinstaller create-dmg
+          pip install -r requirements.txt pyinstaller
       - name: Build .app
         run: pyinstaller --windowed --name "PhotoResize" photo_resize.py
-      - name: Create DMG with helper
+      - name: Prepare payload
         run: |
           mkdir -p package-mac
           cp -R "dist/PhotoResize.app" "package-mac/"
           cp "installers/Finish Install.command" "package-mac/"
-          create-dmg \
-            --volname "PhotoResize" \
-            --window-pos 200 120 \
-            --window-size 600 400 \
-            --icon-size 100 \
-            --icon "PhotoResize.app" 175 200 \
-            --hide-extension "Finish Install.command" \
-            --app-drop-link 425 200 \
-            "PhotoResize-macOS.dmg" \
-            "package-mac"
+          chmod +x "package-mac/Finish Install.command"
+      - name: Create DMG (hdiutil)
+        run: |
+          hdiutil create -volname "PhotoResize" \
+            -srcfolder "package-mac" \
+            -ov -format UDZO "PhotoResize-macOS.dmg"
       - uses: actions/upload-artifact@v4
         with:
           name: macos-dmg
