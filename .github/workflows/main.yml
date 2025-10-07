@@ -1,0 +1,66 @@
+name: Build desktop binaries
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt pyinstaller
+
+      - name: Build EXE
+        run: |
+          pyinstaller --noconsole --onefile --name ImageShrinker image_shrinker_gui.py
+        shell: bash
+
+      - name: Upload EXE
+        uses: actions/upload-artifact@v4
+        with:
+          name: ImageShrinker-windows
+          path: dist/ImageShrinker.exe
+
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt pyinstaller
+
+      - name: Build .app
+        run: |
+          pyinstaller --windowed --name ImageShrinker image_shrinker_gui.py
+
+      - name: Create DMG
+        run: |
+          hdiutil create -volname ImageShrinker -srcfolder "dist/ImageShrinker.app" -ov -format UDZO dist/ImageShrinker.dmg
+
+      - name: Upload DMG
+        uses: actions/upload-artifact@v4
+        with:
+          name: ImageShrinker-mac
+          path: |
+            dist/ImageShrinker.app
+            dist/ImageShrinker.dmg
