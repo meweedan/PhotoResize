@@ -12,6 +12,13 @@ jobs:
       - name: Check out
         uses: actions/checkout@v4
 
+      - name: Verify script exists
+        run: |
+          if [ ! -f "photo_resize.py" ]; then
+            echo "photo_resize.py not found at repo root"; exit 1;
+          fi
+        shell: bash
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -24,20 +31,24 @@ jobs:
 
       - name: Build EXE
         run: |
-          pyinstaller --noconsole --onefile --name ImageShrinker image_shrinker_gui.py
+          pyinstaller --noconsole --onefile --name PhotoResize photo_resize.py
         shell: bash
 
       - name: Upload EXE
         uses: actions/upload-artifact@v4
         with:
-          name: ImageShrinker-windows
-          path: dist/ImageShrinker.exe
+          name: PhotoResize-windows
+          path: dist/PhotoResize.exe
 
   build-macos:
     runs-on: macos-latest
     steps:
       - name: Check out
         uses: actions/checkout@v4
+
+      - name: Verify script exists
+        run: |
+          test -f "photo_resize.py" || (echo "photo_resize.py not found at repo root" && exit 1)
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -51,16 +62,16 @@ jobs:
 
       - name: Build .app
         run: |
-          pyinstaller --windowed --name ImageShrinker image_shrinker_gui.py
+          pyinstaller --windowed --name PhotoResize photo_resize.py
 
       - name: Create DMG
         run: |
-          hdiutil create -volname ImageShrinker -srcfolder "dist/ImageShrinker.app" -ov -format UDZO dist/ImageShrinker.dmg
+          hdiutil create -volname PhotoResize -srcfolder "dist/PhotoResize.app" -ov -format UDZO dist/PhotoResize.dmg
 
-      - name: Upload DMG
+      - name: Upload DMG + .app
         uses: actions/upload-artifact@v4
         with:
-          name: ImageShrinker-mac
+          name: PhotoResize-mac
           path: |
-            dist/ImageShrinker.app
-            dist/ImageShrinker.dmg
+            dist/PhotoResize.app
+            dist/PhotoResize.dmg
